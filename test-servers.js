@@ -24,6 +24,6 @@ ports.forEach(port => {
         if (err) {
             return console.log('Something bad happened:', err);
         }
-        console.log(`✅ Backend server is listening on http://localhost:${port}`);
+        console.log(` Backend server is listening on http://localhost:${port}`);
     });
 });

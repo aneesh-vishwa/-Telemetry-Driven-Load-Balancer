@@ -37,5 +37,5 @@ if (!port) {
 
 const server = http.createServer((req, res) => handleRequest(req, res, port));
 server.listen(port, () => {
-    console.log(`✅ Single E-commerce Backend (API Server) running on http://localhost:${port}`);
+    console.log(` Single E-commerce Backend (API Server) running on http://localhost:${port}`);
 });

@@ -61,7 +61,7 @@ function startApiServer(port) {
     });
 
     app.listen(port, () => {
-        console.log(`✅ Control Plane API & Dashboard running on http://localhost:${port}`);
+        console.log(` Control Plane API & Dashboard running on http://localhost:${port}`);
     });
 }
 
