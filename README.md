@@ -102,4 +102,4 @@ Live Traffic Monitor: From the main dashboard, click the "View Live Traffic Moni
 
 You can now use the dashboards to manage the servers and watch the real-time impact on the traffic charts!
 
-![Alt text](results\Screenshot 2025-09-03 210143.png)
+![Dashboard image](results\2.png)
