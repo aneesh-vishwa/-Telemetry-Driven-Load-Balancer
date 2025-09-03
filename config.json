@@ -1,0 +1,30 @@
+{
+  "port": 8443,
+  "apiPort": 9000,
+  "tlsOptions": {
+    "key": "./server.key",
+    "cert": "./server.crt"
+  },
+  "serverPools": [
+    {
+      "name": "api_servers",
+      "servers": [
+        "http://localhost:3001",
+        "http://localhost:3002"
+      ]
+    },
+    {
+      "name": "web_servers",
+      "servers": [
+        "http://localhost:3003"
+      ]
+    }
+  ],
+  "routingRules": [
+    {
+      "path": "/api",
+      "pool": "api_servers"
+    }
+  ],
+  "defaultPool": "web_servers"
+}

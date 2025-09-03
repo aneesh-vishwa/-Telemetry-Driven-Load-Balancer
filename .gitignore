@@ -1,0 +1,6 @@
+node_modules/
+*.key
+*.crt
+
+.package.json
+.package-lock.json

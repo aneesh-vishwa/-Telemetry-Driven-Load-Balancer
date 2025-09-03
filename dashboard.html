@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Load Balancer Control Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans p-4 md:p-8">
+    <div class="max-w-7xl mx-auto">
+        <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
+            <div>
+                <h1 class="text-4xl font-bold text-cyan-400 mb-2">Load Balancer Control Panel</h1>
+                <p class="text-lg text-gray-400">Live management and monitoring of the server pools.</p>
+            </div>
+            <a href="/traffic" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-md transition-colors">
+                View Live Traffic Monitor &rarr;
+            </a>
+        </div>
+        <div id="metrics-section" class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-200 border-b-2 border-gray-700 pb-2 mb-4">Live Pool Metrics</h2>
+            <div id="metrics-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <p class="text-gray-500">Waiting for traffic...</p>
+            </div>
+        </div>
+        <div id="pools-section">
+            <h2 class="text-2xl font-semibold text-gray-200 border-b-2 border-gray-700 pb-2 mb-4">Server Pools</h2>
+            <div id="pools-container" class="space-y-6"></div>
+        </div>
+        <div id="form-section" class="mt-8 bg-gray-800 p-6 rounded-lg shadow-lg">
+            <h3 class="text-xl font-semibold text-white mb-4">Add New Server</h3>
+            <form id="add-server-form" class="flex flex-col md:flex-row md:items-end gap-4">
+                <div class="flex-grow">
+                    <label for="server-url" class="block text-sm font-medium text-gray-300 mb-1">Server URL</label>
+                    <input type="text" id="server-url" name="serverUrl" class="w-full bg-gray-700 border-gray-600 text-white rounded-md p-2 focus:ring-2 focus:ring-cyan-500" placeholder="http://localhost:3005" required>
+                </div>
+                <div>
+                    <label for="pool-name" class="block text-sm font-medium text-gray-300 mb-1">To Pool</label>
+                    <select id="pool-name" name="poolName" class="w-full bg-gray-700 border-gray-600 text-white rounded-md p-2 focus:ring-2 focus:ring-cyan-500"></select>
+                </div>
+                <button type="submit" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-md transition-colors">Add Server</button>
+            </form>
+        </div>
+    </div>
+    <script>
+        const apiBaseUrl = 'http://localhost:9000';
+        async function fetchMetrics() {
+            try {
+                const response = await fetch(`${apiBaseUrl}/metrics`);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const metrics = await response.json();
+                const metricsContainer = document.getElementById('metrics-container');
+                metricsContainer.innerHTML = '';
+                if (Object.keys(metrics).length === 0) {
+                     metricsContainer.innerHTML = '<p class="text-gray-500">Waiting for traffic...</p>';
+                     return;
+                }
+                for (const poolName in metrics) {
+                    const requests = metrics[poolName];
+                    metricsContainer.innerHTML += `
+                        <div class="bg-gray-800 rounded-lg p-4 shadow-md border border-gray-700 transition-transform hover:scale-105">
+                            <p class="text-sm font-medium text-gray-400 uppercase tracking-wider">${poolName.replace(/_/g, ' ')}</p>
+                            <p class="text-3xl font-bold text-cyan-400">${requests.toLocaleString()}</p>
+                            <p class="text-xs text-gray-500">Total Requests Handled</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Failed to fetch metrics:', error);
+                document.getElementById('metrics-container').innerHTML = '<p class="text-red-500">Could not load metrics.</p>';
+            }
+        }
+        async function fetchPools() {
+            try {
+                const response = await fetch(`${apiBaseUrl}/pools`);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const pools = await response.json();
+                const poolsContainer = document.getElementById('pools-container');
+                const poolNameSelect = document.getElementById('pool-name');
+                poolsContainer.innerHTML = '';
+                poolNameSelect.innerHTML = '';
+                for (const poolName in pools) {
+                    poolNameSelect.innerHTML += `<option value="${poolName}">${poolName}</option>`;
+                    const pool = pools[poolName];
+                    let serversHtml = pool.servers.map(server => `
+                        <div class="flex items-center justify-between p-3 bg-gray-700 rounded-md">
+                            <p class="font-mono text-sm">${server.id}</p>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold px-2 py-1 rounded-full ${server.healthy ? 'bg-green-500 text-green-900' : 'bg-red-500 text-red-900'}">
+                                    ${server.healthy ? 'Healthy' : 'Unhealthy'}
+                                </span>
+                                <button onclick="handleRemoveServer('${poolName}', '${btoa(server.id)}')" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-1 px-2 rounded">Remove</button>
+                            </div>
+                        </div>
+                    `).join('');
+                    if (pool.servers.length === 0) {
+                        serversHtml = '<p class="text-gray-500 p-3">No servers in this pool.</p>';
+                    }
+                    poolsContainer.innerHTML += `
+                        <div class="bg-gray-800 p-4 rounded-lg shadow-lg border border-gray-700">
+                            <h3 class="text-lg font-bold text-cyan-500 mb-3">${poolName}</h3>
+                            <div class="space-y-2">${serversHtml}</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Failed to fetch pools:', error);
+                document.getElementById('pools-container').innerHTML = '<p class="text-red-500">Could not load server pools.</p>';
+            }
+        }
+        async function handleAddServer(event) {
+            event.preventDefault();
+            const form = event.target;
+            const serverUrl = form.serverUrl.value;
+            const poolName = form.poolName.value;
+            try {
+                const response = await fetch(`${apiBaseUrl}/pools/${poolName}/servers`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ serverUrl })
+                });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText);
+                }
+                form.reset();
+                fetchPools();
+            } catch (error) {
+                console.error('Failed to add server:', error);
+                alert(`Error: Could not add server. ${error.message}`);
+            }
+        }
+        async function handleRemoveServer(poolName, serverId) {
+            if (!confirm('Are you sure you want to remove this server?')) return;
+            try {
+                await fetch(`${apiBaseUrl}/pools/${poolName}/servers/${serverId}`, { method: 'DELETE' });
+                fetchPools();
+            } catch (error) {
+                console.error('Failed to remove server:', error);
+                alert('Error: Could not remove server.');
+            }
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchPools();
+            fetchMetrics();
+            setInterval(fetchPools, 5000);
+            setInterval(fetchMetrics, 2000);
+            document.getElementById('add-server-form').addEventListener('submit', handleAddServer);
+        });
+    </script>
+</body>
+</html>

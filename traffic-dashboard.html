@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Traffic Monitor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans p-4 md:p-8">
+    <div class="max-w-7xl mx-auto">
+        <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
+            <div>
+                <h1 class="text-4xl font-bold text-teal-400">Live Traffic Monitor</h1>
+                <p class="text-lg text-gray-400">Real-time request distribution across individual servers.</p>
+            </div>
+            <a href="/" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-md transition-colors">&larr; Back to Control Panel</a>
+        </div>
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700">
+            <canvas id="trafficChart"></canvas>
+        </div>
+    </div>
+    <script>
+        const apiBaseUrl = 'http://localhost:9000';
+        let trafficChart;
+        async function fetchAndRenderChart() {
+            try {
+                const response = await fetch(`${apiBaseUrl}/servers/metrics`);
+                const serverMetrics = await response.json();
+                serverMetrics.sort((a, b) => a.id.localeCompare(b.id));
+                const labels = serverMetrics.map(s => s.id);
+                const data = serverMetrics.map(s => s.requests);
+                const backgroundColors = serverMetrics.map(s => s.healthy ? 'rgba(29, 209, 161, 0.6)' : 'rgba(255, 107, 107, 0.6)');
+                const borderColors = serverMetrics.map(s => s.healthy ? 'rgba(29, 209, 161, 1)' : 'rgba(255, 107, 107, 1)');
+                trafficChart.data.labels = labels;
+                trafficChart.data.datasets[0].data = data;
+                trafficChart.data.datasets[0].backgroundColor = backgroundColors;
+                trafficChart.data.datasets[0].borderColor = borderColors;
+                trafficChart.update();
+            } catch (error) {
+                console.error("Failed to fetch server metrics:", error);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            const ctx = document.getElementById('trafficChart').getContext('2d');
+            trafficChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Total Requests Handled',
+                        data: [],
+                        backgroundColor: [],
+                        borderColor: [],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: '#9CA3AF', stepSize: 1 },
+                            grid: { color: '#4B5563' }
+                        },
+                        x: {
+                            ticks: { color: '#9CA3AF' },
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                           labels: { color: '#E5E7EB' }
+                        }
+                    },
+                    animation: {
+                        duration: 500
+                    }
+                }
+            });
+            setInterval(fetchAndRenderChart, 2000);
+        });
+    </script>
+</body>
+</html>
