@@ -101,3 +101,5 @@ Management Dashboard: Navigate to http://localhost:9000
 Live Traffic Monitor: From the main dashboard, click the "View Live Traffic Monitor" link, or navigate directly to http://localhost:9000/traffic
 
 You can now use the dashboards to manage the servers and watch the real-time impact on the traffic charts!
+
+![Alt text](results\Screenshot 2025-09-03 210143.png)
